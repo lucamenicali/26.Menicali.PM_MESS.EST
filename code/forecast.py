@@ -6,7 +6,7 @@ from functions import *
 import gc
 global suffix
 
-suffix = 'MOE' #'PINN', 'NPI'
+suffix = 'MOE' #'PMNN', 'NPM'
 
 #################################################################
 # Load climate climate data   
