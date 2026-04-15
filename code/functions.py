@@ -199,40 +199,40 @@ def build_st_model(time_shape, space_shape, time_sizes, space_sizes, comb_sizes,
       x_space = tf.keras.layers.Dropout(drop_space[i], name=f'Drop_LakeChars{i+1}')(x_space)
   
   ###############################################################################################
-  if suffix == 'NPI' or suffix == 'MOE':
-    # Non-PINN branch
-    x_nonpinn = tf.keras.layers.Concatenate(name='Together_NonPINN')([x_time, x_space, input_depth, input_max_depth])
+  if suffix == 'NPM' or suffix == 'MOE':
+    # Non-PMNN branch
+    x_nonpmnn = tf.keras.layers.Concatenate(name='Together_NonPMNN')([x_time, x_space, input_depth, input_max_depth])
     for i, s in enumerate(comb_sizes):
-        x_nonpinn = tf.keras.layers.Dense(s, name=f'Dense_Comb_NonPINN{i+1}')(x_nonpinn)
-        x_nonpinn = tf.keras.layers.BatchNormalization(name=f'Norm_Comb_NonPINN{i+1}')(x_nonpinn)
-        x_nonpinn = tf.keras.layers.LeakyReLU(name=f'LeakyReLU_Comb_NonPINN{i+1}')(x_nonpinn)
-        x_nonpinn = tf.keras.layers.Dropout(drop_comb[i], name=f'Drop_Comb_NonPINN{i+1}')(x_nonpinn)
-    x_nonpinn_last = tf.keras.layers.Dense(comb_sizes[-1], name='Dense_Last_NonPINN')(x_nonpinn)
-    temp_nonpi = tf.keras.layers.Dense(1, activation='sigmoid', name='ML_Temperature_sigmoid')(x_nonpinn_last)
+        x_nonpmnn = tf.keras.layers.Dense(s, name=f'Dense_Comb_NonPMNN{i+1}')(x_nonpmnn)
+        x_nonpmnn = tf.keras.layers.BatchNormalization(name=f'Norm_Comb_NonPMNN{i+1}')(x_nonpmnn)
+        x_nonpmnn = tf.keras.layers.LeakyReLU(name=f'LeakyReLU_Comb_NonPMNN{i+1}')(x_nonpmnn)
+        x_nonpmnn = tf.keras.layers.Dropout(drop_comb[i], name=f'Drop_Comb_NonPMNN{i+1}')(x_nonpmnn)
+    x_nonpmnn_last = tf.keras.layers.Dense(comb_sizes[-1], name='Dense_Last_NonPMNN')(x_nonpmnn)
+    temp_nonpi = tf.keras.layers.Dense(1, activation='sigmoid', name='ML_Temperature_sigmoid')(x_nonpmnn_last)
     temp_nonpi = tf.keras.layers.Lambda(lambda x: 1e-3 + 45.*x, name="ML_Temperature")(temp_nonpi)
     ###############################################################################################
-    if suffix == 'NPI': 
+    if suffix == 'NPM': 
       return tf.keras.Model([input_time, input_space, input_depth, input_max_depth], temp_nonpi, name=f'ST_Model_{suffix}')
      
-  # PINN branch
-  if suffix == 'MOE' or suffix == 'PINN':
-    x_pinn = tf.keras.layers.Concatenate(name='Together_PINN')([x_time, x_space])
+  # PMNN branch
+  if suffix == 'MOE' or suffix == 'PMNN':
+    x_pmnn = tf.keras.layers.Concatenate(name='Together_PMNN')([x_time, x_space])
     for i, s in enumerate(comb_sizes):
-        x_pinn = tf.keras.layers.Dense(s, name=f'Dense_Comb_PINN{i+1}')(x_pinn)
-        x_pinn = tf.keras.layers.BatchNormalization(name=f'Norm_Comb_PINN{i+1}')(x_pinn)
-        x_pinn = tf.keras.layers.LeakyReLU(name=f'LeakyReLU_Comb_PINN{i+1}')(x_pinn)
-        x_pinn = tf.keras.layers.Dropout(drop_comb[i], name=f'Drop_Comb_PINN{i+1}')(x_pinn)
-    x_pinn_last = tf.keras.layers.Dense(comb_sizes[-1], name='Dense_Last_PINN')(x_pinn)
+        x_pmnn = tf.keras.layers.Dense(s, name=f'Dense_Comb_PMNN{i+1}')(x_pmnn)
+        x_pmnn = tf.keras.layers.BatchNormalization(name=f'Norm_Comb_PMNN{i+1}')(x_pmnn)
+        x_pmnn = tf.keras.layers.LeakyReLU(name=f'LeakyReLU_Comb_PMNN{i+1}')(x_pmnn)
+        x_pmnn = tf.keras.layers.Dropout(drop_comb[i], name=f'Drop_Comb_PMNN{i+1}')(x_pmnn)
+    x_pmnn_last = tf.keras.layers.Dense(comb_sizes[-1], name='Dense_Last_PMNN')(x_pmnn)
     
-    T_bot = tf.keras.layers.Dense(1, activation='sigmoid', name='T_bot')(x_pinn_last) #sigmoid
-    T_top = tf.keras.layers.Dense(1, activation='sigmoid', name='T_top')(x_pinn_last) #sigmoid
-    a = tf.keras.layers.Dense(1, activation='sigmoid', name='a')(x_pinn_last)
-    k = tf.keras.layers.Dense(1, activation='relu', name='k')(x_pinn_last)
+    T_bot = tf.keras.layers.Dense(1, activation='sigmoid', name='T_bot')(x_pmnn_last) #sigmoid
+    T_top = tf.keras.layers.Dense(1, activation='sigmoid', name='T_top')(x_pmnn_last) #sigmoid
+    a = tf.keras.layers.Dense(1, activation='sigmoid', name='a')(x_pmnn_last)
+    k = tf.keras.layers.Dense(1, activation='relu', name='k')(x_pmnn_last)
     
     params = tf.keras.layers.Concatenate(name='Parameters')([T_bot, T_top, a, k])
-    temp_pi = LakeTempLayerST(name='PINN_Temperature')([params, input_depth, input_max_depth])
+    temp_pi = LakeTempLayerST(name='PMNN_Temperature')([params, input_depth, input_max_depth])
     ###############################################################################################
-    if suffix == 'PINN':
+    if suffix == 'PMNN':
       return tf.keras.Model([input_time, input_space, input_depth, input_max_depth], temp_pi, name=f'ST_Model_{moe}')
   
   weight_input = tf.keras.layers.Concatenate(name='Weight_Input')([x_time, x_space])
